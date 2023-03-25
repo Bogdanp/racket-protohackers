@@ -1,0 +1,11 @@
+#lang binfmt
+
+Message = Insert | Query;
+
+Insert = 'I' Timestamp Price;
+Timestamp = i32be;
+Price = i32be;
+
+Query = 'Q' MinTime MaxTime;
+MinTime = i32be;
+MaxTime = i32be;
