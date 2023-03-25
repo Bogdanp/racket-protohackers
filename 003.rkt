@@ -94,15 +94,19 @@
       (let loop ()
         (define-values (in out)
           (tcp-accept listener))
+        (define client-custodian
+          (make-custodian))
         (define client-thd
-          (thread
-           (lambda ()
-             (handle in out))))
+          (parameterize ([current-custodian client-custodian])
+            (thread
+             (lambda ()
+               (handle in out)))))
         (thread
          (lambda ()
            (sync client-thd)
            (close-output-port out)
-           (close-input-port in)))
+           (close-input-port in)
+           (custodian-shutdown-all client-custodian)))
         (loop))))
   (custodian-shutdown-all server-custodian)
   (tcp-close listener))
