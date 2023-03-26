@@ -1,8 +1,7 @@
 #lang racket/base
 
 (require racket/match
-         racket/string
-         racket/tcp)
+         racket/string)
 
 (define room-ch (make-channel))
 (define room-thd
@@ -19,7 +18,7 @@
              [`(join ,name ,out ,res-ch ,nack)
               (cond
                 [(hash-has-key? users name)
-                 (define req `((fail "username-taken") ,res-ch ,nack))
+                 (define req `((err "username taken") ,res-ch ,nack))
                  (loop users (cons req reqs))]
                 [else
                  (define req `((ok ,(hash-keys users)) ,res-ch ,nack))
@@ -60,7 +59,7 @@
   (match (read-line in 'any)
     [(regexp #px"^[a-zA-Z0-9]{1,16}$" (list (app string->symbol name)))
      (match (sync (make-room-evt 'join name out))
-       [`(fail ,message)
+       [`(err ,message)
         (fprintf out "error: ~a~n" message)]
        [`(ok ,names)
         (fprintf* out "* The room contains: ~a~n" (string-join (map symbol->string (sort names symbol<?))))
@@ -85,28 +84,5 @@
   (flush-output out))
 
 (module+ main
-  (define listener
-    (tcp-listen 8111 512 #t "0.0.0.0"))
-  (define server-custodian
-    (make-custodian))
-  (with-handlers ([exn:break? void])
-    (parameterize ([current-custodian server-custodian])
-      (let loop ()
-        (define-values (in out)
-          (tcp-accept listener))
-        (define client-custodian
-          (make-custodian))
-        (define client-thd
-          (parameterize ([current-custodian client-custodian])
-            (thread
-             (lambda ()
-               (handle in out)))))
-        (thread
-         (lambda ()
-           (sync client-thd)
-           (close-output-port out)
-           (close-input-port in)
-           (custodian-shutdown-all client-custodian)))
-        (loop))))
-  (custodian-shutdown-all server-custodian)
-  (tcp-close listener))
+  (require "common.rkt")
+  (run-server* "0.0.0.0" 8111 handle))

@@ -3,7 +3,6 @@
 (require racket/match
          racket/math
          racket/port
-         racket/tcp
          "002.bnf")
 
 (define (get-avg-price prices min-time max-time)
@@ -27,28 +26,5 @@
          (loop prices)]))))
 
 (module+ main
-  (define listener
-    (tcp-listen 8111 512 #t "0.0.0.0"))
-  (define server-custodian
-    (make-custodian))
-  (with-handlers ([exn:break? void])
-    (parameterize ([current-custodian server-custodian])
-      (let loop ()
-        (define-values (in out)
-          (tcp-accept listener))
-        (define client-custodian
-          (make-custodian))
-        (define client-thd
-          (parameterize ([current-custodian client-custodian])
-            (thread
-             (lambda ()
-               (handle in out)))))
-        (thread
-         (lambda ()
-           (sync client-thd)
-           (close-output-port out)
-           (close-input-port in)
-           (custodian-shutdown-all client-custodian)))
-        (loop))))
-  (custodian-shutdown-all server-custodian)
-  (tcp-close listener))
+  (require "common.rkt")
+  (run-server* "0.0.0.0" 8111 handle))
