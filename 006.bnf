@@ -1,0 +1,26 @@
+#lang binfmt
+
+Error = 0x10 Str;
+
+Plate = 0x20 PlateStr Timestamp;
+PlateStr = Str;
+Timestamp = u32be;
+
+Ticket = 0x21 PlateStr Road Mile Timestamp Mile Timestamp Speed;
+Road = u16be;
+Mile = u16be;
+Speed = u16be;
+
+WantHeartbeat = 0x40 Interval;
+Interval = u32be;
+
+Heartbeat = 0x41;
+
+IAmCamera = 0x80 Road Mile Limit;
+Limit = u16be;
+
+IAmDispatcher = 0x81 u8 Road{u8_1};
+
+@foreign-parsers "006-native.rkt"
+  {Str un-Str}
+  ;
